@@ -10,7 +10,7 @@
 void* mythread_func(void *arg) {
     for(int i = 0; i < 5; ++i) {
         printf("hello: %s\n",  (char*)arg);
-        sleep(1);
+        //sleep(1);
     }
     return NULL;
 }
@@ -40,25 +40,26 @@ void* mythread_func2(void *arg) {
 
 int main() {
     printf("MAIN: %d\n", getpid());
-    while(1) {
+    //while(1) {
     mythread_struct_t thread;
     //printf("%x\n", thread);
     mythread_attr_t attr;
     //mythread_set_thread_detached_no(&attr);
     mythread_set_thread_detached_yes(&attr);
     char* arg_value = "Human";
-    int err = mythread_create(&thread, &attr, mythread_func2, (void*) arg_value);
+    int err = mythread_create(&thread, &attr, mythread_func, (void*) arg_value);
     if (err != 0) {
         perror("mythread_create");
         return 1;
     }
-    sleep(0.1);
+    //sleep(1);
     //printf("%x\n", thread);
     //mythread_cancel(&thread);
     //mythread_join(&thread, NULL);
     //printf("TUTUTU\n");
-    //munmap(thread.stack_address, thread.stack_size);
-    }
+    //}
+    //sleep(10);
+    munmap(thread.stack_address, thread.stack_size);
     printf("Thread has been joined\n");
     return 0;
 }

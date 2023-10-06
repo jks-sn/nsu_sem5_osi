@@ -63,7 +63,7 @@ int mythread_routine(void *arg) {
     mythread_struct_t *mythread  = (mythread_struct_t*)arg;
     mythread->retval = mythread->start_routine(mythread->arg); // do routine;
     // printf("abacaba3\n");
-     sleep(1);
+     //sleep(1);
      mythread->is_finished = 1; 
      while(!mythread->is_joined && !mythread->is_detached) {
         //printf("lol\n");
