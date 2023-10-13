@@ -12,6 +12,9 @@
 void* create_stack(long stack_size) {
     void *stack;
     stack = mmap(NULL, stack_size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_STACK,-1, 0);
+    if(stack == (void*)-1) {
+        return NULL;
+    }
     memset(stack, 0, stack_size);
     return stack;
 }
@@ -44,7 +47,7 @@ int mythread_create(mythread_struct_t *mythread, mythread_attr_t* attr, void* (*
     mythread->is_joined = 0;    
     mythread->is_finished = 0;
     //printf("abacaba1\n");
-    sleep(1);
+    //sleep(1);
     if(clone(mythread_routine, child_stack + STACK_SIZE, CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_THREAD | CLONE_SIGHAND, (void*) mythread) == -1) {
         return 1;
     }
@@ -52,7 +55,9 @@ int mythread_create(mythread_struct_t *mythread, mythread_attr_t* attr, void* (*
 }
 
 int mythread_cancel(mythread_struct_t* mythread) {
-    kill(mythread->mythread_id.id, SIGCHLD);
+    if(kill(mythread->mythread_id.id, SIGCHLD) == -1) {
+        printf("Error with kill\n");
+    }
     mythread->is_canceled = 1;
     return 0;
 }
@@ -71,6 +76,7 @@ int mythread_routine(void *arg) {
      }
     // printf("abacaba4\n");
      //sleep(1);
+    //printf("Oh, no, i am really die\n");
     return 0;
 }  
 

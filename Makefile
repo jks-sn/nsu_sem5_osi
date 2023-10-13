@@ -2,7 +2,8 @@ CC=gcc
 CFLAGS= -g -O0 -Wall
 LIBS=-lpthread
 SOURCES_THREAD_1_6=$(wildcard thread1_6/*.c)
-all: thread1_1_a thread1_1_b thread1_1_c_1 thread1_1_c_2 thread1_1_d thread1_1_e thread1_2_a thread1_2_b thread1_2_c thread1_2_d thread1_2_e thread1_2_f thread1_3_a thread1_3_b thread1_4_a thread1_4_b thread1_4_c thread1_5_a thread1_6
+SOURCES_THREAD_1_7=$(wildcard thread1_7/*.c)
+all: thread1_1_a thread1_1_b thread1_1_c_1 thread1_1_c_2 thread1_1_d thread1_1_e thread1_2_a thread1_2_b thread1_2_c thread1_2_d thread1_2_e thread1_2_f thread1_3_a thread1_3_b thread1_4_a thread1_4_b thread1_4_c thread1_5_a thread1_6 thread1_7
 
 thread1_1_a: thread1_1_a.c
 	${CC} ${CFLAGS} thread1_1_a.c ${LIBS} -o thread1_1_a
@@ -42,6 +43,8 @@ thread1_5_a: thread1_5_a.c
 	${CC} ${CFLAGS} thread1_5_a.c ${LIBS} -o thread1_5_a
 thread1_6: $(SOURCES_THREAD_1_6)
 	${CC} ${CFLAGS} $(SOURCES_THREAD_1_6) ${LIBS} -o thread1_6.out
+thread1_7: $(SOURCES_THREAD_1_7)
+	${CC} ${CFLAGS} $(SOURCES_THREAD_1_7) ${LIBS} -o thread1_7.out
 clean:
-	rm -f *.o thread1_1_a thread1_1_b thread1_1_c_1 thread1_1_c_2 thread1_1_d thread1_1_e thread1_2_a thread1_2_b thread1_2_c thread1_2_d thread1_2_e thread1_2_f thread1_3_a thread1_3_b thread1_4_a thread1_4_b thread1_4_c thread1_5_a thread1_6.out
+	rm -f *.o thread1_1_a thread1_1_b thread1_1_c_1 thread1_1_c_2 thread1_1_d thread1_1_e thread1_2_a thread1_2_b thread1_2_c thread1_2_d thread1_2_e thread1_2_f thread1_3_a thread1_3_b thread1_4_a thread1_4_b thread1_4_c thread1_5_a thread1_6.out thread1_7.out
 rebuild: clean all
