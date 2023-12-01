@@ -40,7 +40,7 @@ void *reader(void *arg) {
 	queue_t *q = (queue_t *)arg;
 	printf("reader [%d %d %d]\n", getpid(), getppid(), gettid());
 
-	set_cpu(1);
+	set_cpu(0);
 
 	while (1) {
 		int val = -1;
@@ -89,36 +89,54 @@ void *writer(void *arg) {
 }
 
 int main() {
-	pthread_t tid;
+	pthread_t tid_reader, tid_writer;
 	queue_t *q;
 	int err;
 
 	printf("main [%d %d %d]\n", getpid(), getppid(), gettid());
 
 	q = queue_init(1000000);
-	pthread_mutex_init(&count_lock, NULL);   
-    	pthread_cond_init(&count_nonzero, NULL);
+	if((err = pthread_mutex_init(&count_lock, NULL))) {
+		printf("main: pthread_mutex_destroy() failed with error: %d\n", err);
+	}  
+    if((err = pthread_cond_init(&count_nonzero, NULL))) {
+		printf("main: pthread_cond_init() failed with error: %d\n", err);
+	}
  
 
-	err = pthread_create(&tid, NULL, reader, q);
-	if (err) {
+	if ((err = pthread_create(&tid_reader, NULL, reader, q))) {
 		printf("main: pthread_create() failed: %s\n", strerror(err));
 		return -1;
 	}
 
-	sched_yield();
+	if ((err = sched_yield())) {
+		printf("main: sched_yield() failed %s\n", strerror(err));
+	}
 
-	err = pthread_create(&tid, NULL, writer, q);
-	if (err) {
+	if ((err = pthread_create(&tid_writer, NULL, writer, q))) {
 		printf("main: pthread_create() failed: %s\n", strerror(err));
 		return -1;
 	}
 
-	// TODO: join threads
+	if((err = pthread_join(tid_reader, NULL))) {
+		printf("Main: pthread_join() failed: %s\n", strerror(err));
+        return -1;
+	}
+
+	if((err = pthread_join(tid_writer, NULL))) {
+		printf("Main: pthread_join() failed: %s\n", strerror(err));
+        return -1;
+	}
 
 	pthread_exit(NULL);
-	pthread_cond_destroy(&count_nonzero);
-    	pthread_mutex_destroy(&count_lock);
+	
+	if((err = pthread_cond_destroy(&count_nonzero))) {
+		printf("main: pthread_cond_destroy() failed with error: %d\n", err);
+	}
+
+	if((err = pthread_mutex_destroy(&count_lock))) {
+		printf("main: pthread_mutex_destroy() failed with error: %d\n", err);
+	}
 
 	return 0;
 }

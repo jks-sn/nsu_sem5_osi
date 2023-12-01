@@ -40,7 +40,7 @@ void *reader(void *arg) {
 	pthread_spinlock_t *spin = (pthread_spinlock_t*)arg;
 	printf("reader [%d %d %d]\n", getpid(), getppid(), gettid());
 
-	set_cpu(1);
+	set_cpu(0);
 
 	while (1) {
 		int val = -1;
@@ -68,10 +68,10 @@ void *writer(void *arg) {
 	srand(time(NULL));
 
 	while (1) {
-		//int random_number = rand() % 10;
-		//if (random_number == 0){
-		//	usleep(1);
-		//}
+		int random_number = rand() % 10;
+		if (random_number == 0){
+			usleep(1);
+		}
 		pthread_spin_lock(spin);
 		int ok = queue_add(q, i);
 		pthread_spin_unlock(spin);
@@ -84,7 +84,7 @@ void *writer(void *arg) {
 }
 
 int main() {
-	pthread_t tid;
+	pthread_t tid_reader, tid_writer;
 	int err;
 	q = queue_init(1000000);
 
@@ -93,27 +93,38 @@ int main() {
 
 	pthread_spinlock_t spin;
  
-    	pthread_spin_init(&spin, 0);
+    if((pthread_spin_init(&spin, PTHREAD_PROCESS_PRIVATE) != 0)) {
+		printf("main: pthread_spin_init() failed\n");
+	}
 
-	err = pthread_create(&tid, NULL, reader, &spin);
-	if (err) {
+	if ((err = pthread_create(&tid_reader, NULL, reader, (void*)(&spin)))) {
 		printf("main: pthread_create() failed: %s\n", strerror(err));
 		return -1;
 	}
 
-	sched_yield();
+	if ((err = sched_yield())) {
+		printf("main: sched_yield() failed %s\n", strerror(err));
+	}
 
-	err = pthread_create(&tid, NULL, writer, &spin);
-	if (err) {
+	if ((err = pthread_create(&tid_writer, NULL, writer, (void*)&spin))) {
 		printf("main: pthread_create() failed: %s\n", strerror(err));
 		return -1;
 	}
 
+	if((err = pthread_join(tid_reader, NULL))) {
+		printf("Main: pthread_join() failed: %s\n", strerror(err));
+        return -1;
+	}
 
-	// TODO: join threads
+	if((err = pthread_join(tid_writer, NULL))) {
+		printf("Main: pthread_join() failed: %s\n", strerror(err));
+        return -1;
+	}
 
 	pthread_exit(NULL);
-	pthread_spin_destroy(&spin);
 
+	if((err = pthread_spin_destroy(&spin))) {
+		printf("main: pthread_spin_destroy() failed with error: %d\n", err);
+	}
 	return 0;
 }

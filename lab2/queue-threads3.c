@@ -15,8 +15,10 @@
 
 #define RED "\033[41m"
 #define NOCOLOR "\033[0m"
-
-sem_t semaphore;
+#define QUEUE_SIZE 1000000
+sem_t semaphore_1;
+sem_t semaphore_2;
+sem_t semaphore_3;
 
 void set_cpu(int n) {
 	int err;
@@ -40,13 +42,15 @@ void *reader(void *arg) {
 	queue_t *q = (queue_t *)arg;
 	printf("reader [%d %d %d]\n", getpid(), getppid(), gettid());
 
-	set_cpu(1);
+	set_cpu(0);
 
 	while (1) {
 		int val = -1;
-		sem_wait(&semaphore);
+		sem_wait(&semaphore_1);
+		sem_wait(&semaphore_3);
 		int ok = queue_get(q, &val);
-		sem_post(&semaphore);
+		sem_post(&semaphore_3);
+		sem_post(&semaphore_2);
 		if (!ok)
 			continue;
 
@@ -71,9 +75,11 @@ void *writer(void *arg) {
 		//if (random_number == 0){
 		//	usleep(1);
 		//}
-		sem_wait(&semaphore);
+		sem_wait(&semaphore_2);
+		sem_wait(&semaphore_3);
 		int ok = queue_add(q, i);
-		sem_post(&semaphore);
+		sem_post(&semaphore_3);
+		sem_post(&semaphore_1);
 		if (!ok)
 			continue;
 		i++;
@@ -83,33 +89,66 @@ void *writer(void *arg) {
 }
 
 int main() {
-	pthread_t tid;
+	pthread_t tid_reader, tid_writer;
 	queue_t *q;
 	int err;
 
 	printf("main [%d %d %d]\n", getpid(), getppid(), gettid());
 
-	q = queue_init(1000000);
-	sem_init(&semaphore, 0, 1);
+	q = queue_init(QUEUE_SIZE);
 
-	err = pthread_create(&tid, NULL, reader, q);
-	if (err) {
+	if((err = sem_init(&semaphore_1, 0, 1))) {
+		printf("main: sem_init() failed: %s\n", strerror(err));
+		return -1;
+	}
+
+	if((err = sem_init(&semaphore_2, 0, QUEUE_SIZE))) {
+		printf("main: sem_init() failed: %s\n", strerror(err));
+		return -1;
+	}
+
+	if((err = sem_init(&semaphore_3, 0, QUEUE_SIZE))) {
+		printf("main: sem_init() failed: %s\n", strerror(err));
+		return -1;
+	}
+	// for(int i = 0; i < QUEUE_SIZE; ++i) {
+	// 	sem_post(&semaphore_2);
+	// }
+
+	if ((err = pthread_create(&tid_reader, NULL, reader, q))) {
 		printf("main: pthread_create() failed: %s\n", strerror(err));
 		return -1;
 	}
 
-	sched_yield();
+	if ((err = sched_yield())) {
+		printf("main: sched_yield() failed %s\n", strerror(err));
+	}
 
-	err = pthread_create(&tid, NULL, writer, q);
-	if (err) {
+	if ((err = pthread_create(&tid_writer, NULL, writer, q))) {
 		printf("main: pthread_create() failed: %s\n", strerror(err));
 		return -1;
 	}
 
-	// TODO: join threads
+	if((err = pthread_join(tid_reader, NULL))) {
+		printf("Main: pthread_join() failed: %s\n", strerror(err));
+        return -1;
+	}
+
+	if((err = pthread_join(tid_writer, NULL))) {
+		printf("Main: pthread_join() failed: %s\n", strerror(err));
+        return -1;
+	}
 
 	pthread_exit(NULL);
-	sem_destroy(&semaphore);
+	if((sem_destroy(&semaphore_1))) {
+		printf("main: sem_destroy() failed: %s\n", strerror(err));
+		return -1;
+	}
+
+	if((sem_destroy(&semaphore_2))) {
+		printf("main: sem_destroy() failed: %s\n", strerror(err));
+		return -1;
+	}
 
 	return 0;
 }
