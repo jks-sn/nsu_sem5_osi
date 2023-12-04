@@ -9,7 +9,7 @@ int ascending = 0;
 int descending = 0;
 int equal = 0;
 
-#define LENLIST 10000
+#define LENLIST 1000
 
 void wrlock(pthread_rwlock_t *lock){
     if (pthread_rwlock_wrlock(lock) != 0) {
@@ -46,23 +46,23 @@ void* swap(void* arg){
 	        wrlock(&(previous->next->rwlock));
 	        current = previous->next;
 	        if (current->next == NULL){
-		    unlock(&(current->rwlock));
-		    unlock(&(previous->rwlock));
-		    unlock(&(previousPrevious->rwlock));
-		    break;
-	    }
-	    if (rand() % 2 == 0){
-		    previousPrevious->next = current;
-		    previous->next = current->next;
-		    current->next = previous;
-		    unlock(&(previousPrevious->rwlock));
-		    previousPrevious = current;
-	    }else{
-	        unlock(&(previousPrevious->rwlock));
-		    previousPrevious = previous;
-		    previous = current;
-	    }
-	}	
+		        unlock(&(current->rwlock));
+		        unlock(&(previous->rwlock));
+		        unlock(&(previousPrevious->rwlock));
+		        break;
+	        }
+	        if (rand() % 2 == 0){
+		        previousPrevious->next = current;
+		        previous->next = current->next;
+		        current->next = previous;
+		        unlock(&(previousPrevious->rwlock));
+		        previousPrevious = current;
+	        }else{
+	            unlock(&(previousPrevious->rwlock));
+		        previousPrevious = previous;
+		        previous = current;
+	        }
+	    }	
     }
 }
 

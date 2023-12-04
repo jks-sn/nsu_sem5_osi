@@ -46,11 +46,11 @@ void *reader(void *arg) {
 
 	while (1) {
 		int val = -1;
+		sem_post(&semaphore_2);
 		sem_wait(&semaphore_1);
 		sem_wait(&semaphore_3);
 		int ok = queue_get(q, &val);
 		sem_post(&semaphore_3);
-		sem_post(&semaphore_2);
 		if (!ok)
 			continue;
 
@@ -75,11 +75,12 @@ void *writer(void *arg) {
 		//if (random_number == 0){
 		//	usleep(1);
 		//}
+		sem_post(&semaphore_1);
 		sem_wait(&semaphore_2);
 		sem_wait(&semaphore_3);
 		int ok = queue_add(q, i);
 		sem_post(&semaphore_3);
-		sem_post(&semaphore_1);
+
 		if (!ok)
 			continue;
 		i++;

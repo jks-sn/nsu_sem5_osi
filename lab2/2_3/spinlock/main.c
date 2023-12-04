@@ -9,7 +9,7 @@ int ascending = 0;
 int descending = 0;
 int equal = 0;
 
-#define LENLIST 10000
+#define LENLIST 1000
 
 void lock(pthread_spinlock_t *lock){
     if (pthread_spin_lock(lock)) {

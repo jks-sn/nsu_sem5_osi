@@ -10,8 +10,8 @@ void initStorage(Storage* storage) {
 Node* createNode(const char* value) {
     Node* newNode = (Node*)malloc(sizeof(Node));
     if (newNode != NULL) {
-        strncpy(newNode->value, value, MAX_STRING_LENGTH - 1);
-        newNode->value[MAX_STRING_LENGTH - 1] = '\0';
+        strncpy(newNode->value, value, MAX_STRING_LENGTH);
+        //newNode->value[MAX_STRING_LENGTH - 1] = '\0';
         newNode->next = NULL;
         if(pthread_spin_init(&newNode->spin, 0)) {
             fprintf(stderr, "Failed to init spinlock for a new node\n");
