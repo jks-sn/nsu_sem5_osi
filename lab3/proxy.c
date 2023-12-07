@@ -17,18 +17,16 @@ void socket_routine(int client_fd) {
 
     parse_uri(uri, &content);
     
-    printf("Path: %s\n", content.path);
-
-    //host_catched = get_request(&socket, data);
+    printf("Path: %s\nHost: %s\nPort: %d\n", content.path, content.host, content.port);
     
-    build_server_request(new_request, &content, data, host_catched);
-    
+    build_server_request(&socket, new_request, &content);
+    printf("Request: \n%s", new_request);
     server_fd = Open_server(content.host, content.port);
 
     Sockett_write(server_fd, new_request, sizeof(new_request));
     
     int response_size = fd_read(server_fd, response, sizeof(response));
-
+    printf("Response: \n%s", response);
     close(server_fd);
 	
 	Sockett_write(client_fd, response, response_size);
@@ -54,48 +52,14 @@ void parse_uri(char *uri, content_t *content) {
 	if(!content->path[0])
 		strcpy(content->path,"./");
 }
-void build_server_request(char* new_request, content_t* content, char* data, int host_catched) {
-    sprintf(new_request, "GET %s HTTP/1.0\r\n", content->path);
-    if(host_catched) {
-        sprintf(new_request, "%sHost: %s\r\n", new_request, content->host);
-    }
-    strcat(new_request, data);
-    strcat(new_request, user_agent_hdr);
-    strcat(new_request, accept_hdr);
-    strcat(new_request, accept_encoding_hdr);
-    strcat(new_request, connection_hdr);
-    strcat(new_request, proxy_conn_hdr);
-    strcat(new_request, "\r\n");
-}
-int get_request(sockett_t *socket, char *data) {
+void build_server_request(sockett_t *socket, char* new_request, content_t* content) {
     char buf[SOCKET_LINESIZE];
-    int return_value = 0;
+    sprintf(new_request, "%s %s %s\r\n", content->method, content->path, content->version);
     do {
     	Sockett_readline(socket, buf, SOCKET_LINESIZE);
-        printf("Line: %s\n", buf);
-    	if(strstr(buf, "User-Agent:")) {
-    		continue;
-        }
-    	if(strstr(buf, "Accept:")) {
-    		continue;
-        }
-    	if(strstr(buf, "Accept-Encoding:")) {
-    		continue;
-        }
-    	if(strstr(buf, "Connection:")) {
-    		continue;
-        }
-    	if(strstr(buf, "Proxy-Connection:")) {
-    		continue;
-        }
-    	if(strstr(buf, "Host:")) {
-    		sprintf(data, "%s%s", data, buf);
-    		return_value = 1;
-    		continue;
-    	}
-    	sprintf(data, "%s%s", data, buf);
+        //printf("Line: %s\n", buf);
+        strcat(new_request, buf);
     } while(strcmp(buf, "\r\n"));
-    return return_value;
 }
 void sockett_init(sockett_t *socket, int fd) {
     socket->fd = fd;  
@@ -105,18 +69,16 @@ void sockett_init(sockett_t *socket, int fd) {
 ssize_t sockett_read(sockett_t *socket, char *usrbuf, ssize_t n) {
     int byte_to_return;
 
-    while (socket->byte_wrote <= 0) {  /* refill if buf is empty */
+    if (socket->byte_wrote <= 0) { 
         socket->byte_wrote = read(socket->fd, socket->buf, sizeof(socket->buf));
         if (socket->byte_wrote < 0) {
-            if (errno != EINTR) { /* interrupted by sig handler return */
                 return -1;
             }
-        }
         else if (socket->byte_wrote == 0) {  /* EOF */
             return 0;
         }
         else { 
-            socket->bufptr = socket->buf; /* reset buffer ptr */
+            socket->bufptr = socket->buf;
         }
     }
 
@@ -320,8 +282,9 @@ void* Malloc(ssize_t size) {
 }
 void thread_routine(void* args) {
 	int fd = *((int*) args);
+	free(args);
 	Pthread_detach(pthread_self());
-    //printf("thread_routine; fd: %d\n", fd);
+    printf("thread_routine - fd: %d\n", fd);
 	socket_routine(fd);
 	Close(fd);
 	pthread_exit(NULL);
@@ -335,9 +298,10 @@ void Close(int fd) {
 
 void Pthread_create(pthread_t *tid, pthread_attr_t *attr, void * (*routine)(void *), void *args) {
     int return_value;
-
-    if ((return_value = pthread_create(tid, attr, routine, args)) != 0)
-    error2(return_value, "pthread_create error");
+    printf("Pthread_create arg: %d\n", *((int*)args));
+    if ((return_value = pthread_create(tid, attr, routine, args)) != 0) {
+        error2(return_value, "pthread_create error");
+    }
 }
 void Pthread_detach(pthread_t tid) {
     int return_value;

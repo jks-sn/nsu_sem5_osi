@@ -62,9 +62,8 @@ int Open_socket(int port);
 int open_server(char *hostname, int port);
 int Open_server(char *hostname, int port);
 
-void build_server_request(char* new_request, content_t* content, char* host_data, int host_catched);
+void build_server_request(sockett_t *socket, char* new_request, content_t* content);
 void parse_uri(char *uri, content_t *content);
-int get_request(sockett_t *socket, char *data);
 
 void *Malloc(ssize_t size);
 
