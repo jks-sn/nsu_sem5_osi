@@ -14,12 +14,13 @@
 #include <pthread.h>
 #include <bits/socket.h>
 #include <errno.h>
+#include <signal.h>
 #include <arpa/inet.h>
 
 #define PORT 80
-#define	SOCKET_LINESIZE 8192  
-#define SOCKET_BUFSIZE 8192
-#define NUMBER_USERS 1024
+#define	SOCKET_LINESIZE 1<<13  
+#define SOCKET_BUFSIZE 1<<15
+#define NUMBER_USERS 1<<10
 
 typedef struct {
     int fd;
@@ -45,18 +46,19 @@ typedef struct {
 int Accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
 void Close(int fd);
 
-void thread_routine(void *args);
+void* thread_routine(void *args);
 void Pthread_create(pthread_t *tid, pthread_attr_t *attr, void * (*routine)(void *), void *args);
 void Pthread_detach(pthread_t tid);
 
+void get_response(int server_fd, int client_fd);
 void sockett_init(sockett_t *socket, int fd);
 void socket_routine(int server_fd);
 ssize_t Sockett_readline(sockett_t *socket, void *output, ssize_t maxlen);
 ssize_t sockett_readline(sockett_t *socket, char *output, ssize_t maxlen);
 ssize_t fd_read(int fd, void *usrbuf, ssize_t n);
 ssize_t Fd_read(int fd, void *output, ssize_t n);
-ssize_t sockett_write(int fd, void *output, ssize_t n);
-void Sockett_write(int fd, void *output, ssize_t n);
+ssize_t sockett_write(int fd, void *message, ssize_t n);
+void Sockett_write(int fd, void *message, ssize_t n);
 int open_socket(int port);
 int Open_socket(int port);
 int open_server(char *hostname, int port);
@@ -69,6 +71,5 @@ void *Malloc(ssize_t size);
 
 void error1(char* str);
 void error2(int code, char *str);
-void error_client(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
 
 #endif //PROXY_H

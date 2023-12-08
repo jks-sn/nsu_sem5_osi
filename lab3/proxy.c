@@ -1,8 +1,7 @@
 #include "proxy.h"
 
 void socket_routine(int client_fd) {
-	char buf[SOCKET_LINESIZE], uri[SOCKET_LINESIZE], version[SOCKET_LINESIZE];
-	char data[SOCKET_LINESIZE], new_request[SOCKET_BUFSIZE], response[1<<15];
+	char buf[SOCKET_LINESIZE], uri[SOCKET_LINESIZE], version[SOCKET_LINESIZE], new_request[SOCKET_BUFSIZE];
 	sockett_t socket;
 	content_t content;
 	int host_catched, server_fd;
@@ -11,13 +10,13 @@ void socket_routine(int client_fd) {
 	
 	Sockett_readline(&socket, buf, SOCKET_LINESIZE);
     
-    printf("Header: %s\n", buf);
+    //printf("Header: %s\n", buf);
 	
 	sscanf(buf, "%s %s %s", content.method, uri, content.version);
 
     parse_uri(uri, &content);
     
-    printf("Path: %s\nHost: %s\nPort: %d\n", content.path, content.host, content.port);
+    //printf("Path: %s\nHost: %s\nPort: %d\n", content.path, content.host, content.port);
     
     build_server_request(&socket, new_request, &content);
     printf("Request: \n%s", new_request);
@@ -25,13 +24,19 @@ void socket_routine(int client_fd) {
 
     Sockett_write(server_fd, new_request, sizeof(new_request));
     
-    int response_size = fd_read(server_fd, response, sizeof(response));
-    printf("Response: \n%s", response);
+    get_response(server_fd, client_fd);
     close(server_fd);
-	
-	Sockett_write(client_fd, response, response_size);
 }   
-
+void get_response(int server_fd, int client_fd) {
+    char response[SOCKET_BUFSIZE];
+    int response_size;
+    do {
+        response_size = Fd_read(server_fd, response, SOCKET_BUFSIZE);
+        //printf("Response: \n%s", response);
+	    Sockett_write(client_fd, response, response_size);
+    } while(response_size > 0);
+    close(server_fd);
+}
 void parse_uri(char *uri, content_t *content) {
 	char temp[SOCKET_LINESIZE];
 
@@ -137,6 +142,7 @@ ssize_t fd_read(int fd, void *usrbuf, ssize_t n) {
         if ((number_byte_done_read = read(fd, bufp, number_byte_need_read)) < 0) {
             if (errno == EINTR) {
                 number_byte_done_read = 0; // get nothing from read()
+                break;
             }
             else {
                 return -1;
@@ -155,7 +161,7 @@ ssize_t Fd_read(int fd, void *output, ssize_t n) {
 
     if ((return_value = fd_read(fd, output, n)) < 0) {
         if(errno==ECONNRESET) {
-            pthread_exit(NULL);
+            return 0;;
         }
         else {
             error1("fd_read error");
@@ -163,28 +169,28 @@ ssize_t Fd_read(int fd, void *output, ssize_t n) {
     }
     return return_value;
 }
-ssize_t sockett_write(int fd, void *output, ssize_t n) {
-    ssize_t nleft = n;
-    ssize_t nwritten;
-    char *bufp = output;
+ssize_t sockett_write(int fd, void *message, ssize_t n) {
+    ssize_t byte_need_to_write = n;
+    ssize_t byte_wrote = 0;
+    char *bufp = message;
 
-    while (nleft > 0) {
-    if ((nwritten = write(fd, bufp, nleft)) <= 0) {
-        if (errno == EINTR) {  /* interrupted by sig handler return */
-            nwritten = 0;    /* and call write() again */
+    while (byte_need_to_write > 0) {
+        if ((byte_wrote = write(fd, bufp, byte_need_to_write)) <= 0) {
+            if (errno == EINTR) {  
+                byte_wrote = 0;
+            }
+            else {
+                return -1;
+            }
         }
-        else {
-            return -1;       /* errorno set by write() */
-        }
-    }
-    nleft -= nwritten;
-    bufp += nwritten;
+        byte_need_to_write -= byte_wrote;
+        bufp += byte_wrote;
     }
     return n;
 }
-void Sockett_write(int fd, void *output, ssize_t n) 
+void Sockett_write(int fd, void *message, ssize_t n) 
 {
-    if (sockett_write(fd, output, n) != n)
+    if (sockett_write(fd, message, n) != n)
     {
         if(errno==EPIPE) {
             pthread_exit(NULL);
@@ -280,14 +286,14 @@ void* Malloc(ssize_t size) {
     }
     return p;
 }
-void thread_routine(void* args) {
+void* thread_routine(void* args) {
 	int fd = *((int*) args);
 	free(args);
 	Pthread_detach(pthread_self());
-    printf("thread_routine - fd: %d\n", fd);
+    //printf("thread_routine - fd: %d\n", fd);
 	socket_routine(fd);
 	Close(fd);
-	pthread_exit(NULL);
+	return NULL;
 }
 
 void Close(int fd) {
@@ -298,7 +304,7 @@ void Close(int fd) {
 
 void Pthread_create(pthread_t *tid, pthread_attr_t *attr, void * (*routine)(void *), void *args) {
     int return_value;
-    printf("Pthread_create arg: %d\n", *((int*)args));
+    //printf("Pthread_create arg: %d\n", *((int*)args));
     if ((return_value = pthread_create(tid, attr, routine, args)) != 0) {
         error2(return_value, "pthread_create error");
     }
