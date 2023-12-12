@@ -19,7 +19,7 @@
 
 #define PORT 80
 #define	SOCKET_LINESIZE 1<<13  
-#define SOCKET_BUFSIZE 1<<15
+#define SOCKET_BUFSIZE 1<<16
 #define NUMBER_USERS 1<<10
 
 typedef struct {
@@ -37,12 +37,6 @@ typedef struct {
 	int port;
 }content_t;
 
-// static const char *connection_hdr = "Connection: close\r\n";
-// static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0\r\n";
-// static const char *accept_hdr = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
-// static const char *accept_encoding_hdr = "Accept-Encoding: gzip, deflate\r\n";
-// static const char *proxy_conn_hdr = "Proxy-Connection: close\r\n";
-
 int Accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
 void Close(int fd);
 
@@ -53,6 +47,7 @@ void Pthread_detach(pthread_t tid);
 void get_response(int server_fd, int client_fd);
 void sockett_init(sockett_t *socket, int fd);
 void socket_routine(int server_fd);
+ssize_t sockett_read(sockett_t *socket, char *usrbuf, ssize_t n);
 ssize_t Sockett_readline(sockett_t *socket, void *output, ssize_t maxlen);
 ssize_t sockett_readline(sockett_t *socket, char *output, ssize_t maxlen);
 ssize_t fd_read(int fd, void *usrbuf, ssize_t n);

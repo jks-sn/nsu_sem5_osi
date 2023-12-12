@@ -19,7 +19,7 @@ void socket_routine(int client_fd) {
     //printf("Path: %s\nHost: %s\nPort: %d\n", content.path, content.host, content.port);
     
     build_server_request(&socket, new_request, &content);
-    printf("Request: \n%s", new_request);
+    //printf("Request: \n%s", new_request);
     server_fd = Open_server(content.host, content.port);
 
     Sockett_write(server_fd, new_request, sizeof(new_request));
@@ -59,12 +59,21 @@ void parse_uri(char *uri, content_t *content) {
 }
 void build_server_request(sockett_t *socket, char* new_request, content_t* content) {
     char buf[SOCKET_LINESIZE];
+    ssize_t str_len;
     sprintf(new_request, "%s %s %s\r\n", content->method, content->path, content->version);
     do {
-    	Sockett_readline(socket, buf, SOCKET_LINESIZE);
-        //printf("Line: %s\n", buf);
+    	str_len = Sockett_readline(socket, buf, SOCKET_LINESIZE);
+        //printf("Line_size: %ld Line: %s\n", str_len, buf);
         strcat(new_request, buf);
     } while(strcmp(buf, "\r\n"));
+    ssize_t body_length;
+    char* ptr;
+    if((ptr = strstr(new_request, "Content-Length:")) && (sscanf(ptr, "Content-Length:%ld", &body_length))) {
+    	char* buf = Malloc(body_length);
+        str_len = sockett_read(socket, buf, body_length);  
+        strcat(new_request, buf);
+        free(buf);
+    }
 }
 void sockett_init(sockett_t *socket, int fd) {
     socket->fd = fd;  
@@ -105,13 +114,13 @@ ssize_t sockett_readline(sockett_t *socket, char *output, ssize_t maxlen) {
         } 
         else if (return_value == 0) {
             if (n == 1) {
-                return 0; /* EOF, no data read */
+                return 0;
             }
             else {
-                break;    /* EOF, some data was read */
+                break;
             }
         } else {
-            return -1;    /* error */
+            return -1;
         }
     }
     *output = 0;
@@ -141,7 +150,7 @@ ssize_t fd_read(int fd, void *usrbuf, ssize_t n) {
     while (number_byte_need_read > 0) {
         if ((number_byte_done_read = read(fd, bufp, number_byte_need_read)) < 0) {
             if (errno == EINTR) {
-                number_byte_done_read = 0; // get nothing from read()
+                number_byte_done_read = 0;
                 break;
             }
             else {
@@ -149,7 +158,7 @@ ssize_t fd_read(int fd, void *usrbuf, ssize_t n) {
             }
         } 
         else if (number_byte_done_read == 0) {
-            break;              /* EOF */
+            break;              
         }
         number_byte_need_read -= number_byte_done_read;
         bufp += number_byte_done_read;
@@ -240,12 +249,12 @@ int open_server(char *hostname, int port) {
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         return -1;
     }
-    /* Get a list of addrinfo structs */
+    
     sprintf(port_str, "%d", port);
     if (getaddrinfo(hostname, port_str, NULL, &addrlist) != 0) {
         return -1;
     }
-    /* Walk the list, using each addrinfo to try to connect */
+
     for (addr = addrlist; addr; addr = addr->ai_next) {
         if ((addr->ai_family == AF_INET)) {
             if (connect(server_fd, addr->ai_addr, addr->ai_addrlen) == 0) {
